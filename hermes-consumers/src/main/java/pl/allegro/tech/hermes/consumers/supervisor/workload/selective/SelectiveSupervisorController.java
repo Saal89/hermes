@@ -60,6 +60,7 @@ public class SelectiveSupervisorController implements SupervisorController {
         assignmentExecutor.execute(() -> {
             logger.info("Assigning consumer for {}", subscription.getId());
             supervisor.assignConsumerForSubscription(subscription);
+            logger.info("Consumer assigned for {}", subscription.getId());
         });
     }
 
@@ -69,6 +70,7 @@ public class SelectiveSupervisorController implements SupervisorController {
         assignmentExecutor.execute(() -> {
             logger.info("Removing assignment from consumer for {}", subscription.getId());
             supervisor.deleteConsumerForSubscriptionName(subscription);
+            logger.info("Consumer removed for {}", subscription.getId());
         });
     }
 
