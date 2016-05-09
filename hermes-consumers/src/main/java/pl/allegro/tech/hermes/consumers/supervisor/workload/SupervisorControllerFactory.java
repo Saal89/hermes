@@ -13,6 +13,7 @@ import pl.allegro.tech.hermes.common.di.CuratorType;
 import pl.allegro.tech.hermes.common.metric.HermesMetrics;
 import pl.allegro.tech.hermes.consumers.subscription.cache.SubscriptionsCache;
 import pl.allegro.tech.hermes.consumers.supervisor.ConsumersSupervisor;
+import pl.allegro.tech.hermes.consumers.supervisor.LegacyConsumersSupervisor;
 import pl.allegro.tech.hermes.consumers.supervisor.workload.ConsumerWorkloadAlgorithm.UnsupportedConsumerWorkloadAlgorithm;
 import pl.allegro.tech.hermes.consumers.supervisor.workload.mirror.LegacyMirroringSupervisorController;
 import pl.allegro.tech.hermes.consumers.supervisor.workload.mirror.MirroringSupervisorController;
@@ -50,7 +51,7 @@ public class SupervisorControllerFactory implements Factory<SupervisorController
                                        ConfigFactory configs) {
         this.configs = configs;
         this.availableImplementations = ImmutableMap.of(
-                LEGACY_MIRROR, () -> new LegacyMirroringSupervisorController(supervisor, subscriptionsCache, adminCache, configs),
+                LEGACY_MIRROR, () -> new LegacyMirroringSupervisorController((LegacyConsumersSupervisor) supervisor, subscriptionsCache, adminCache, configs),
                 MIRROR, () -> new MirroringSupervisorController(supervisor, subscriptionsCache, workTracker, adminCache, configs),
                 SELECTIVE, () -> new SelectiveSupervisorController(supervisor, subscriptionsCache, workTracker,
                                                                   createConsumersRegistry(configs, curator), adminCache,

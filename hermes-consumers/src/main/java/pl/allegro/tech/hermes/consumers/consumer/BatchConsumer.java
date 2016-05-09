@@ -24,9 +24,12 @@ import pl.allegro.tech.hermes.consumers.consumer.receiver.MessageReceiver;
 import pl.allegro.tech.hermes.consumers.consumer.receiver.ReceiverFactory;
 import pl.allegro.tech.hermes.consumers.consumer.sender.MessageBatchSender;
 import pl.allegro.tech.hermes.consumers.consumer.sender.MessageSendingResult;
+import pl.allegro.tech.hermes.consumers.consumer.status.MutableStatus;
+import pl.allegro.tech.hermes.consumers.consumer.status.Status;
 import pl.allegro.tech.hermes.tracker.consumers.Trackers;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
@@ -35,6 +38,10 @@ import java.util.concurrent.TimeUnit;
 import static com.github.rholder.retry.WaitStrategies.fixedWait;
 import static java.util.Optional.of;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static pl.allegro.tech.hermes.consumers.consumer.status.Status.StatusType.BROKEN;
+import static pl.allegro.tech.hermes.consumers.consumer.status.Status.StatusType.CONSUMING;
+import static pl.allegro.tech.hermes.consumers.consumer.status.Status.StatusType.STOPPED;
+import static pl.allegro.tech.hermes.consumers.consumer.status.Status.StatusType.STOPPING;
 
 public class BatchConsumer implements Consumer {
     private static final Logger logger = LoggerFactory.getLogger(BatchConsumer.class);
@@ -55,6 +62,7 @@ public class BatchConsumer implements Consumer {
     private volatile boolean consuming = true;
 
     private BatchMonitoring monitoring;
+    private MutableStatus status;
 
     public BatchConsumer(ReceiverFactory messageReceiverFactory,
                          MessageBatchSender sender,
@@ -65,7 +73,8 @@ public class BatchConsumer implements Consumer {
                          HermesMetrics hermesMetrics,
                          Trackers trackers,
                          Subscription subscription,
-                         Topic topic) {
+                         Topic topic,
+                         Clock clock) {
         this.messageReceiverFactory = messageReceiverFactory;
         this.sender = sender;
         this.batchFactory = batchFactory;
@@ -77,18 +86,20 @@ public class BatchConsumer implements Consumer {
         this.messageContentWrapper = messageContentWrapper;
         this.topic = topic;
         this.trackers = trackers;
+        this.status = new MutableStatus(clock);
     }
 
     @Override
     public void run() {
         setThreadName();
-
+        status.set(Status.StatusType.STARTING);
         logger.info("Starting batch consumer for subscription {} ", subscription.getId());
 
         Timer.Context timer = new Timer().time();
         receiver = initializeMessageReceiver();
 
         logger.info("Started batch consumer for subscription {} in {} ms", subscription.getId(), TimeUnit.NANOSECONDS.toMillis(timer.stop()));
+        status.set(Status.StatusType.STARTED);
 
         try {
             consume();
@@ -96,6 +107,9 @@ public class BatchConsumer implements Consumer {
             logger.info("Stopped consumer for subscription {}", subscription.getId());
             unsetThreadName();
             stoppedLatch.countDown();
+            if (status.get().getType() != BROKEN) {
+                status.set(STOPPED);
+            }
         }
     }
 
@@ -117,6 +131,7 @@ public class BatchConsumer implements Consumer {
     private void consume() {
         while (isConsuming()) {
             Optional<MessageBatch> inflight = Optional.empty();
+            status.set(CONSUMING);
             try {
                 logger.debug("Trying to create new batch [subscription={}].", subscription.getId());
 
@@ -185,6 +200,7 @@ public class BatchConsumer implements Consumer {
 
     @Override
     public void stopConsuming() {
+        status.set(STOPPING);
         logger.info("Stopping consumer [subscription={}].", subscription.getId());
         if (receiver != null) {
             receiver.stop();
@@ -207,6 +223,11 @@ public class BatchConsumer implements Consumer {
     @Override
     public boolean isConsuming() {
         return consuming;
+    }
+
+    @Override
+    public Status getStatus() {
+        return status.get();
     }
 
     private RetryListener getRetryListener(java.util.function.Consumer<MessageSendingResult> consumer) {

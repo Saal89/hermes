@@ -132,6 +132,9 @@ public enum Configs {
     CONSUMER_BATCH_CONNECTION_TIMEOUT("consumer.batch.connection.timeout", 500),
     CONSUMER_BATCH_SOCKET_TIMEOUT("consumer.batch.socket.timeout", 500),
 
+    CONSUMER_SUPERVISOR_TYPE("consumer.supervisor.type", "legacy"),
+    CONSUMER_BACKGROUND_SUPERVISOR_INTERVAL("consumer.supervisor.background.interval", 10),
+
     GRAPHITE_HOST("graphite.host", "localhost"),
     GRAPHITE_PORT("graphite.port", 2003),
     GRAPHITE_HTTP_PORT("graphite.http.port", 8082),
