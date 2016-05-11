@@ -81,7 +81,7 @@ public class PublishingServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         TopicName topicName = parseTopicName(request);
-        final String messageId = UUID.randomUUID().toString();
+        final String messageId = "id1234";
         Optional<Topic> topic = topicsCache.getTopic(topicName);
 
         if (topic.isPresent()) {

@@ -54,7 +54,7 @@ public class MessageFactory {
     }
 
     public Message create(HttpServletRequest request, Topic topic, String messageId, byte[] messageContent) {
-        long timestamp = clock.millis();
+        long timestamp = 1451653261;
         switch (topic.getContentType()) {
             case JSON: {
                 if (topic.isJsonToAvroDryRunEnabled()) {
